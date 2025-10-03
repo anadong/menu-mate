@@ -1,9 +1,8 @@
 const CACHE_NAME = 'menu-mate-v1'
-const BASE = self.registration.scope.replace(location.origin, '').replace(/\/$/, '') || ''
 const ASSETS = [
-  `${BASE}/`,
-  `${BASE}/index.html`,
-  `${BASE}/favicon.svg`,
+  '/',
+  '/index.html',
+  '/favicon.svg',
 ]
 
 self.addEventListener('install', (event) => {

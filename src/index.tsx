@@ -4,8 +4,7 @@ import App from 'components/App'
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    const swUrl = new URL('sw.js', import.meta.env.BASE_URL).toString()
-    navigator.serviceWorker.register(swUrl).catch(() => {})
+    navigator.serviceWorker.register('/sw.js').catch(() => {})
   })
 }
 
