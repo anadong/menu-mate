@@ -211,9 +211,27 @@ function TodayScreen({ categories }: { categories: Categories }) {
     })
   }, [todayKey, todayMenu])
 
+  const handleRefresh = () => {
+    const todayKey = getTodayKey()
+    const withoutToday = history.filter((x) => x.date !== todayKey)
+    const newMenu = computeTodayMenu(categories, withoutToday)
+    const next = [{ date: todayKey, menu: newMenu }, ...withoutToday]
+    const trimmed = trimHistory(next)
+    writeHistory(trimmed)
+    setHistory(trimmed)
+  }
+
   return (
     <div className="mx-auto max-w-2xl p-4">
-      <h1 className="mb-4 text-2xl font-semibold">Hôm nay</h1>
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Hôm nay</h1>
+        <button
+          className="rounded bg-indigo-100 px-2.5 py-1.5 text-sm font-medium text-indigo-700 shadow-sm hover:bg-indigo-200"
+          onClick={handleRefresh}
+        >
+          Làm mới
+        </button>
+      </div>
       <div className="grid gap-4 md:grid-cols-2">
         <TodayCard title="Bữa trưa" menu={todayMenu.lunch} />
         <TodayCard title="Bữa tối" menu={todayMenu.dinner} />
