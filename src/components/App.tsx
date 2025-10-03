@@ -170,10 +170,20 @@ function AdminScreen({ categories, onSave }: { categories: Categories; onSave: (
   )
 }
 
-function TodayCard({ title, menu }: { title: string; menu: Record<GroupKey, string> }) {
+function TodayCard({ title, menu, onRefresh }: { title: string; menu: Record<GroupKey, string>; onRefresh?: () => void }) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-      <h2 className="mb-3 text-lg font-semibold">{title}</h2>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-lg font-semibold">{title}</h2>
+        {onRefresh ? (
+          <button
+            className="rounded bg-indigo-100 px-2 py-1 text-xs font-medium text-indigo-700 shadow-sm hover:bg-indigo-200"
+            onClick={onRefresh}
+          >
+            Làm mới
+          </button>
+        ) : null}
+      </div>
       <ul className="space-y-2">
         {GROUPS.map((g) => (
           <li key={g.key} className="flex justify-between gap-4">
@@ -221,20 +231,55 @@ function TodayScreen({ categories }: { categories: Categories }) {
     setHistory(trimmed)
   }
 
+  const generateMeal = (): Record<GroupKey, string> => {
+    // Tạo 1 bữa mới, tránh trùng 2 ngày gần nhất (không tính hôm nay)
+    const recent = history.filter((x) => x.date !== todayKey).slice(0, 2)
+    const recentSetByGroup: Record<GroupKey, Set<string>> = {
+      meat: new Set(),
+      fish: new Set(),
+      vegetable: new Set(),
+      side: new Set(),
+      soup: new Set(),
+      fruit: new Set()
+    }
+    for (const h of recent) {
+      for (const meal of ['lunch', 'dinner'] as MealKey[]) {
+        const groups = h.menu[meal]
+        for (const g of GROUPS) {
+          const v = groups[g.key]
+          if (v) recentSetByGroup[g.key].add(v.toLocaleLowerCase())
+        }
+      }
+    }
+    const pickForGroup = (group: GroupKey): string => {
+      const pool = uniqueList(categories[group])
+      const filtered = pool.filter((x) => !recentSetByGroup[group].has(x.toLocaleLowerCase()))
+      const chosen = pickRandom(filtered.length ? filtered : pool)
+      return chosen ?? ''
+    }
+    const res = {} as Record<GroupKey, string>
+    for (const g of GROUPS) res[g.key] = pickForGroup(g.key)
+    return res
+  }
+
+  const handleRefreshMeal = (meal: MealKey) => {
+    const withoutToday = history.filter((x) => x.date !== todayKey)
+    const newMeal = generateMeal()
+    const currentToday = history.find((x) => x.date === todayKey)
+    const baseMenu = currentToday ? currentToday.menu : computeTodayMenu(categories, withoutToday)
+    const newMenu: DayMenu = { ...baseMenu, [meal]: newMeal }
+    const next = [{ date: todayKey, menu: newMenu }, ...withoutToday]
+    const trimmed = trimHistory(next)
+    writeHistory(trimmed)
+    setHistory(trimmed)
+  }
+
   return (
     <div className="mx-auto max-w-2xl p-4">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Hôm nay</h1>
-        <button
-          className="rounded bg-indigo-100 px-2.5 py-1.5 text-sm font-medium text-indigo-700 shadow-sm hover:bg-indigo-200"
-          onClick={handleRefresh}
-        >
-          Làm mới
-        </button>
-      </div>
+      <h1 className="mb-4 text-2xl font-semibold">Hôm nay</h1>
       <div className="grid gap-4 md:grid-cols-2">
-        <TodayCard title="Bữa trưa" menu={todayMenu.lunch} />
-        <TodayCard title="Bữa tối" menu={todayMenu.dinner} />
+        <TodayCard title="Bữa trưa" menu={todayMenu.lunch} onRefresh={() => handleRefreshMeal('lunch')} />
+        <TodayCard title="Bữa tối" menu={todayMenu.dinner} onRefresh={() => handleRefreshMeal('dinner')} />
       </div>
     </div>
   )
